@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NEXUS — A Pokémon-Style RPG</title>
+<link rel="stylesheet" href="style.css">
+<script>window.onerror=function(msg,src,line){alert("JS ERROR: "+msg+" ("+src.split("/").pop()+":"+line+")");};</script>
+</head>
+<body>
+  <div id="game-container">
+  <div class="scan-line"></div>
+
+  <!-- TITLE -->
+  <div id="screen-title" class="screen active">
+    <div class="title-logo">NEXUS</div>
+    <div class="title-sub">A POKÉMON-STYLE RPG</div>
+    <div class="title-deco"></div>
+    <button class="btn" onclick="typeof startGame==='function'?startGame():alert('ERROR: JS files not loaded. Check your js/ folder on GitHub.')">NEW GAME</button>
+    <button class="btn" onclick="loadGame()" style="margin-top:4px;">CONTINUE</button>
+    <div style="font-size:10px;color:var(--textdim);margin-top:36px;text-align:center;line-height:2;">
+      ◈ SYNTEK CORP PRESENTS ◈<br>
+      <span style="font-size:9px;color:#1a3050;">v3.0 — EVOLUTIONS + GYM 2 + SHOP + KAEL</span>
+    </div>
+  </div>
+
+  <!-- INTRO CINEMATIC -->
+  <div id="screen-intro" class="screen">
+    <div class="intro-art" id="intro-art">
+      <span id="intro-emoji">🌆</span>
+      <div class="intro-speaker" id="intro-speaker">NARRATOR</div>
+    </div>
+    <div class="dialogue-box">
+      <div class="dialogue-text" id="dialogue-text"></div>
+      <div class="dialogue-continue" id="dialogue-continue" onclick="advanceDialogue()">TAP TO CONTINUE ▼</div>
+    </div>
+  </div>
+
+  <!-- NAME ENTRY -->
+  <div id="screen-name" class="screen">
+    <div class="name-title">IDENTIFY YOURSELF, TRAINER</div>
+    <div style="font-size:11px;color:var(--textdim);margin-bottom:20px;text-align:center;line-height:2;">
+      Professor Ada needs to know<br>who she's dealing with.
+    </div>
+    <input class="name-input" id="name-input" type="text" maxlength="10"
+      placeholder="YOUR NAME" autocomplete="off" spellcheck="false">
+    <button class="btn" onclick="confirmName()" style="margin-top:20px;">CONFIRM</button>
+  </div>
+
+  <!-- STARTER SELECTION -->
+  <div id="screen-starter" class="screen">
+    <div class="starter-title">CHOOSE YOUR PARTNER</div>
+    <div style="font-size:11px;color:var(--textdim);text-align:center;line-height:1.8;margin-bottom:12px;">
+      Three Pokémon. Only one is yours.<br>They can sense your intentions.
+    </div>
+    <div class="starter-cards">
+      <div class="starter-card" onclick="selectStarter(0)" id="card-0">
+        <div class="starter-emoji">🌿</div>
+        <div class="starter-name">SPROUTEX</div>
+        <div class="starter-type">Grass/Steel</div>
+        <div class="starter-desc">Patient and defensive. Razor-sharp metal leaves.</div>
+      </div>
+      <div class="starter-card" onclick="selectStarter(1)" id="card-1">
+        <div class="starter-emoji">🔥</div>
+        <div class="starter-name">EMBRIT</div>
+        <div class="starter-type">Fire/Electric</div>
+        <div class="starter-desc">Brave and reckless. Plasma vents on its back.</div>
+      </div>
+      <div class="starter-card" onclick="selectStarter(2)" id="card-2">
+        <div class="starter-emoji">💧</div>
+        <div class="starter-name">AQUIBIT</div>
+        <div class="starter-type">Water/Psychic</div>
+        <div class="starter-desc">Calm and intelligent. Neural interface fin.</div>
+      </div>
+    </div>
+    <div id="starter-confirm" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:14px;width:100%;">
+      <div id="starter-confirm-text" style="font-size:11px;color:var(--accent);text-align:center;line-height:1.8;"></div>
+      <button class="btn" onclick="confirmStarter()">CHOOSE THIS PARTNER</button>
+      <button class="btn btn-pink btn-sm" onclick="cancelStarter()">GO BACK</button>
+    </div>
+  </div>
+
+  <!-- OVERWORLD -->
+  <div id="screen-overworld" class="screen">
+    <div class="ow-header">
+      <div class="ow-location" id="ow-location">BOOTVILLE</div>
+      <div class="ow-party-info" id="ow-party-info"></div>
+    </div>
+    <canvas id="map-canvas"></canvas>
+    <div class="ow-controls">
+      <button class="dpad-btn dpad-up"    ontouchstart="e=>e.preventDefault()" onclick="move('up')">▲</button>
+      <button class="dpad-btn dpad-left"  onclick="move('left')">◀</button>
+      <button class="dpad-btn dpad-down"  onclick="move('down')">▼</button>
+      <button class="dpad-btn dpad-right" onclick="move('right')">▶</button>
+      <button class="dpad-btn btn-bag"    onclick="openBag()">BAG</button>
+      <button class="dpad-btn btn-party"  onclick="openParty()">👥</button>
+      <button class="dpad-btn btn-menu"   onclick="openMenu()">MENU / SAVE</button>
+    </div>
+  </div>
+
+  <!-- NPC DIALOGUE -->
+  <div id="screen-npc" class="screen">
+    <div class="npc-scene" id="npc-scene">
+      <span id="npc-emoji" style="font-size:72px;">👩‍🔬</span>
+      <div class="intro-speaker" id="npc-speaker">???</div>
+    </div>
+    <div class="npc-dialogue-box">
+      <div class="dialogue-text" id="npc-text" style="font-size:13px;"></div>
+      <div id="npc-choices" style="margin-top:10px;"></div>
+      <div class="dialogue-continue" id="npc-continue" onclick="advanceNPC()" style="margin-top:10px;">TAP TO CONTINUE ▼</div>
+    </div>
+  </div>
+
+  <!-- BATTLE -->
+  <div id="screen-battle" class="screen">
+    <div class="battle-scene" id="battle-scene">
+      <div class="battle-bg-grid" id="battle-bg"></div>
+      <div style="position:absolute;top:14px;left:14px;">
+        <div class="battle-info">
+          <div class="battle-pname" id="enemy-name">GLITCHLING</div>
+          <div class="battle-level" id="enemy-level">Lv.3</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-label"><span>HP</span><span id="enemy-hp-text">20/20</span></div>
+            <div class="hp-bar"><div class="hp-fill" id="enemy-hp-bar" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+        <div style="position:absolute;top:14px;right:20px;">
+          <div class="battle-sprite enemy-sprite" id="enemy-sprite"></div>
+        </div>
+        <div style="position:absolute;bottom:14px;left:20px;">
+          <div class="battle-sprite" id="player-sprite"></div>
+        </div>
+      <div style="position:absolute;bottom:14px;right:14px;">
+        <div class="battle-info">
+          <div class="battle-pname" id="player-battle-name">SPROUTEX</div>
+          <div class="battle-level" id="player-battle-level">Lv.5</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-label"><span>HP</span><span id="player-hp-text">30/30</span></div>
+            <div class="hp-bar"><div class="hp-fill" id="player-hp-bar" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- catch ball animation overlay -->
+      <div class="catch-ball" id="catch-ball">🔵</div>
+    </div>
+
+    <div class="battle-log">
+      <div class="battle-log-text" id="battle-log">Battle started!</div>
+    </div>
+
+    <div class="battle-actions" id="battle-actions">
+      <div class="battle-menu-label">WHAT WILL YOU DO?</div>
+      <div class="battle-main-menu">
+        <button class="main-menu-btn" onclick="showMoveMenu()">⚔ FIGHT</button>
+        <button class="main-menu-btn" id="btn-catch" onclick="openCatchMenu()">🔵 CATCH</button>
+        <button class="main-menu-btn" onclick="openBagInBattle()">💊 BAG</button>
+        <button class="main-menu-btn" onclick="openSwitchMenu()">👥 SWITCH</button>
+        <button class="main-menu-btn" id="btn-run" onclick="tryRun()" style="grid-column:1/-1;">↩ RUN</button>
+      </div>
+    </div>
+
+    <div class="battle-actions" id="battle-moves" style="display:none;">
+      <div class="battle-menu-label">CHOOSE A MOVE</div>
+      <div class="move-grid" id="move-grid"></div>
+      <button class="btn btn-pink btn-sm" onclick="hideMoveMenu()" style="margin-top:6px;width:100%;">← BACK</button>
+    </div>
+
+    <div class="battle-actions" id="battle-catch-menu" style="display:none;">
+      <div class="battle-menu-label">THROW WHICH BALL?</div>
+      <div id="ball-options" style="display:flex;flex-direction:column;gap:6px;"></div>
+      <button class="btn btn-pink btn-sm" onclick="hideCatchMenu()" style="margin-top:6px;width:100%;">← BACK</button>
+    </div>
+
+    <div class="battle-actions" id="battle-bag-menu" style="display:none;">
+      <div class="battle-menu-label">USE AN ITEM</div>
+      <div id="battle-bag-options" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:140px;"></div>
+      <button class="btn btn-pink btn-sm" onclick="hideBagInBattle()" style="margin-top:6px;width:100%;">← BACK</button>
+    </div>
+
+    <div class="battle-actions" id="battle-switch-menu" style="display:none;">
+      <div class="battle-menu-label">SWITCH POKÉMON</div>
+      <div id="switch-options" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:160px;"></div>
+      <button class="btn btn-pink btn-sm" onclick="hideSwitchMenu()" style="margin-top:6px;width:100%;">← BACK</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-title" id="result-title">VICTORY!</div>
+    <div class="result-detail" id="result-detail"></div>
+    <button class="btn" id="result-btn" onclick="afterBattle()">CONTINUE</button>
+  </div>
+
+  <!-- BAG -->
+  <div id="screen-bag" class="screen">
+    <div class="bag-header">
+      <div class="bag-title">BAG</div>
+      <button class="btn btn-sm btn-pink" onclick="closeBag()">✕ CLOSE</button>
+    </div>
+    <div class="bag-list" id="bag-list"></div>
+  </div>
+
+  <!-- PARTY -->
+  <div id="screen-party" class="screen">
+    <div class="party-header">
+      <div class="party-title">YOUR PARTY</div>
+      <button class="btn btn-sm" onclick="closeParty()" style="border-color:#aa88ff;color:#aa88ff;">✕ CLOSE</button>
+    </div>
+    <div class="party-list" id="party-list"></div>
+  </div>
+
+  <!-- BADGES -->
+  <div id="screen-badges" class="screen">
+    <div class="badges-title">BADGE CASE</div>
+    <div class="badge-grid" id="badge-grid"></div>
+    <button class="btn btn-sm btn-pink" onclick="showScreen('overworld');drawMap();" style="margin-top:12px;">← BACK</button>
+  </div>
+
+  <!-- POKÉMON CENTER -->
+  <div id="screen-center" class="screen">
+    <div style="font-size:60px;">🏥</div>
+    <div class="center-title">POKÉMON CENTER</div>
+    <div style="font-size:12px;color:var(--textdim);text-align:center;line-height:2;">
+      Nurse Joy will restore<br>your Pokémon to full health.
+    </div>
+    <button class="btn" onclick="healParty()">HEAL PARTY</button>
+    <button class="btn btn-pink btn-sm" onclick="showScreen('overworld');drawMap();">← EXIT</button>
+  </div>
+
+  <!-- GYM INTRO -->
+  <div id="screen-gym" class="screen">
+    <div class="gym-header">
+      <div class="gym-badge-preview" id="gym-badge-emoji">⚡</div>
+      <div>
+        <div class="gym-title" id="gym-title">GRIDLOCK GYM</div>
+        <div style="font-size:10px;color:var(--textdim);letter-spacing:2px;" id="gym-subtitle">LEADER: ZARA — ELECTRIC TYPE</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:80px;" id="gym-leader-emoji">👩</div>
+    <div style="padding:20px;background:var(--panel);border-top:1px solid #1a3050;width:100%;">
+      <div class="intro-speaker" id="gym-leader-name" style="margin-bottom:10px;">ZARA</div>
+      <div id="gym-dialogue-text" style="font-size:13px;line-height:1.8;color:var(--text);margin-bottom:14px;"></div>
+      <button class="btn btn-gold" id="gym-btn-battle" onclick="startGymBattle()" style="width:100%;">⚔ BATTLE!</button>
+      <button class="btn btn-pink btn-sm" onclick="showScreen('overworld');drawMap();" style="width:100%;margin-top:6px;">← LEAVE GYM</button>
+    </div>
+  </div>
+
+
+  <!-- EVOLVE SCREEN -->
+  <div id="screen-evolve" class="screen">
+    <div class="evolve-title">EVOLUTION!</div>
+    <div class="evolve-from" id="evolve-from-emoji" style="width:96px;height:96px;display:flex;align-items:center;justify-content:center;"></div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--textdim);margin:4px 0;" id="evolve-from-name">SPROUTEX</div>
+    <div class="evolve-arrow">▼▼▼</div>
+    <div class="evolve-to" id="evolve-to-emoji" style="width:96px;height:96px;display:flex;align-items:center;justify-content:center;"></div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:var(--accent);margin:4px 0;" id="evolve-to-name">THORNEX</div>
+    <div style="font-size:11px;color:var(--textdim);margin-top:6px;" id="evolve-type-text">Grass/Steel</div>
+    <div style="font-size:11px;color:var(--accent2);margin-top:16px;text-align:center;line-height:2;" id="evolve-stat-text"></div>
+    <button class="btn" id="evolve-continue-btn" style="margin-top:20px;display:none;" onclick="finishEvolve()">AWESOME! ▶</button>
+  </div>
+
+  <!-- SHOP SCREEN -->
+  <div id="screen-shop" class="screen">
+    <div class="shop-header">
+      <div class="shop-title">🛒 ITEM SHOP</div>
+      <div class="shop-money" id="shop-money">💰 0 NC</div>
+    </div>
+    <div class="shop-list" id="shop-list"></div>
+    <div style="padding:10px;">
+      <button class="btn btn-pink btn-sm" onclick="closeShop()" style="width:100%;">← LEAVE SHOP</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
